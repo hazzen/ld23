@@ -6,6 +6,7 @@ function Dog(theta) {
   this.theta = theta;
   this.grounded = true;
   this.v = 0;
+  this.vy = 0;
   this.facing = 1;
 };
 
@@ -13,15 +14,25 @@ Dog.prototype.tick = function(t) {
   var ground = this.planet.groundAt(this.theta);
   if (this.grounded) {
     this.r = ground.height;
+    if (KB.keyPressed('z')) {
+      this.grounded = false;
+      this.vy = 1;
+      this.r += 1;
+    }
   } else {
-    // jumping, etc
+    this.vy -= 4.9 * t;
+    this.r += this.vy;
+    if (this.r < ground.height) {
+      this.grounded = true;
+      this.r = ground.height;
+    }
   }
   if (KB.keyDown(Keys.LEFT)) {
-    this.v -= 25 * t;
+    this.v -= 15 * t;
     this.facing = -1;
   }
   if (KB.keyDown(Keys.RIGHT)) {
-    this.v += 25 * t;
+    this.v += 15 * t;
     this.facing = 1;
   }
   /*
