@@ -176,10 +176,10 @@ Hsl.prototype.toRgb = function() {
   if (this.h < 0 || this.h >= 1) {
     return new Rgb(0, 0, 0);
   }
-  var h = Math.floor(this.h * 6);
-  var x = chroma * h % 2;
+  var h = this.h * 6;
+  var x = chroma * (1 - Math.abs(h % 2 - 1));
   var rgb;
-  switch (h) {
+  switch (Math.floor(h)) {
     case 0: rgb = [chroma, x, 0]; break;
     case 1: rgb = [x, chroma, 0]; break;
     case 2: rgb = [0, chroma, x]; break;
@@ -187,7 +187,7 @@ Hsl.prototype.toRgb = function() {
     case 4: rgb = [x, 0, chroma]; break;
     case 5: rgb = [chroma, 0, x]; break;
   }
-  var m = Math.max(0, this.l - 0.5 * chroma);
+  var m = this.l - 0.5 * chroma;
   return new Rgb(255 * (rgb[0] + m), 255 * (rgb[1] + m), 255 * (rgb[2]+ m));
 };
 
