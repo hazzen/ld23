@@ -49,11 +49,6 @@ function Point(x, y) {
 
 function clampLat(lat) {
   lat = clampLng(lat);
-  /*
-  if (Math.abs(lat) > Math.PI / 2) {
-    lat = sgn(lat) * Math.PI;
-  }
-  */
   return lat;
 }
 
@@ -105,6 +100,8 @@ GlobePoly.prototype.calculateMid = function() {
 
   this.minPoint = new GlobePoint(latMin.lat, lngMin.lng);
   this.maxPoint = new GlobePoint(latMax.lat, lngMax.lng);
+  this.midPoint = new GlobePoint((latMin.lat + latMax.lat) / 2,
+                                 (lngMin.lng + lngMax.lng) / 2);
 };
 
 GlobePoly.prototype.render = function(renderer) {
@@ -112,8 +109,12 @@ GlobePoly.prototype.render = function(renderer) {
   var lngOff = renderer.lngOff;
   var ctx = renderer.context();
 
-  ctx.fillStyle = this.color;
-  ctx.strokeColor = 'rgb(0, 0, 0)';
+  var center = this.midPoint.project(latOff, lngOff);
+  var d2 = center.x * center.x + center.y * center.y;
+  var newColorHsl = this.color.toHsl();
+  newColorHsl.l *= 1 - (d2 / 4);
+
+  ctx.fillStyle = newColorHsl.toRgb().toRgbString();
 
   ctx.beginPath();
   var projPoint = this.points[0].project(latOff, lngOff);
@@ -133,7 +134,7 @@ polys.push(new GlobePoly([
                new GlobePoint(0, 0),
                new GlobePoint(Math.PI / 4, 0),
                new GlobePoint(Math.PI / 8, Math.PI / 8)
-           ], 'rgb(128, 0, 0)'));
+           ],  new Rgb(128, 0, 0)));
 /*
 polys.push(new GlobePoly([
                new GlobePoint(3 * Math.PI / 2, 0),
