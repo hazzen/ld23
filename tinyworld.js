@@ -2,6 +2,44 @@ function normalizeTheta(theta) {
   return theta % (2 * Math.PI) + (theta < 0 ? 2 * Math.PI : 0);
 };
 
+function Frisbee(p, v, c) {
+  this.p = p;
+  this.v = v;
+  this.c = c;
+};
+
+Frisbee.prototype.tick = function(t) {
+  this.p.r += this.v.r * t;
+  this.p.t += normalizeTheta(this.v.t * t);
+  var ground = this.planet.groundAt(this.p.t);
+  if (this.p.r < ground.height) {
+    this.dead = true;
+  }
+};
+
+Frisbee.prototype.render = function(renderer) {
+  var ctx = renderer.context();
+
+  var t = normalizeTheta(this.p.t + renderer.t);
+  ctx.fillStyle = this.c.toRgbString();
+
+  var pa = PolarPoint.rotateUnits(this.p, this.planet.radius, -10);
+  var pb = PolarPoint.rotateUnits(this.p, this.planet.radius, 10);
+  var pc = PolarPoint.grow(pb, -2);
+  var pd = PolarPoint.grow(pa, -2);
+  var carta = pa.toCart();
+  var cartb = pb.toCart();
+  var cartc = pc.toCart();
+  var cartd = pd.toCart();
+
+  ctx.beginPath();
+  ctx.moveTo(carta.x, carta.y);
+  ctx.lineTo(cartb.x, cartb.y);
+  ctx.lineTo(cartc.x, cartc.y);
+  ctx.lineTo(cartd.x, cartd.y);
+  ctx.fill();
+};
+
 function Dog(theta) {
   this.theta = theta;
   this.grounded = true;
@@ -55,8 +93,14 @@ Dog.prototype.render = function(renderer) {
   var ctx = renderer.context();
 
   var height = this.r;
-  var pi = new PolarPoint(height + 5, this.theta - Math.PI / 100 + renderer.t);
-  var pj = new PolarPoint(height + 5, this.theta + Math.PI / 100 + renderer.t);
+  var pi = PolarPoint.rotateUnits(
+    new PolarPoint(height + 5, this.theta + renderer.t),
+    this.planet.radius,
+    -10);
+  var pj = PolarPoint.rotateUnits(
+    new PolarPoint(height + 5, this.theta + renderer.t),
+    this.planet.radius,
+    10);
   var carta = pi.toCart();
   var cartb = pj.toCart();
   var tanx = cartb.y - carta.y;
@@ -129,6 +173,11 @@ PolarPoint.rotate = function(polar, theta) {
   return new PolarPoint(polar.r, polar.t + theta, polar.depth);
 };
 
+PolarPoint.rotateUnits = function(polar, radius, amount) {
+  var td = amount / radius / 2 / Math.PI;
+  return new PolarPoint(polar.r, polar.t + td, polar.depth);
+};
+
 PolarPoint.grow = function(polar, r) {
   return new PolarPoint(polar.r + r, polar.t, polar.depth);
 };
@@ -142,6 +191,36 @@ PolarPoint.prototype.toCart = function() {
 function Planet(points, radius) {
   this.points = points;
   this.radius = radius;
+  this.actors = [];
+  for (var i = 0; i < 50; ++i) {
+    this.actors.push(null);
+  }
+};
+
+Planet.prototype.distanceToTheta = function(d) {
+  return d / this.radius;
+};
+
+Planet.prototype.addActor = function(a) {
+  var i;
+  for (i = 0; i < this.actors.length; ++i) {
+    if (!this.actors[i] || this.actors[i].dead) {
+      break;
+    }
+  }
+  if (i == this.actors.length) {
+    this.actors.push(null);
+  }
+  this.actors[i] = a;
+  a.planet = this;
+};
+
+Planet.prototype.tick = function(t) {
+  for (var i = 0; i < this.actors.length; ++i) {
+    if (this.actors[i] && !this.actors[i].dead) {
+      this.actors[i].tick(t);
+    }
+  }
 };
 
 Planet.prototype.render = function(renderer) {
@@ -163,6 +242,12 @@ Planet.prototype.render = function(renderer) {
     ctx.lineTo(cartc.x, cartc.y);
     ctx.lineTo(cartd.x, cartd.y);
     ctx.fill();
+  }
+
+  for (var i = 0; i < this.actors.length; ++i) {
+    if (this.actors[i] && !this.actors[i].dead) {
+      this.actors[i].render(renderer);
+    }
   }
 };
 
@@ -248,7 +333,7 @@ for (var i = 0; i < NUM_POINTS; ++i) {
 }
 var planet = new Planet(points, RADIUS);
 var dog = new Dog(-Math.PI / 4);
-dog.planet = planet;
+planet.addActor(dog);
 
 var gameElem = document.getElementById('game');
 var daRenderer = new Renderer(gameElem, 640, 480);
@@ -259,18 +344,28 @@ daRenderer.planet = planet;
 function renderFn() {
   daRenderer.render(function(renderer) {
     planet.render(renderer);
-    dog.render(renderer);
   });
 }
 
 function tickFn(t) {
+  planet.tick(t);
   if (KB.keyDown(Keys.DOWN)) {
     daRenderer.zoom *= (1 - t);
   }
   if (KB.keyDown(Keys.UP)) {
     daRenderer.zoom *= (1 + t);
   }
-  dog.tick(t);
+  if (KB.keyPressed('s')) {
+    var speedMin = planet.distanceToTheta(20);
+    var speedMax = planet.distanceToTheta(50);
+    dlog('min: ', speedMin, ' max: ', speedMax);
+    var frisbee = new Frisbee(
+      new PolarPoint(planet.radius * 2, randFlt(2 * Math.PI)),
+      new PolarPoint(-10, randFlt(speedMin, speedMax)),
+      new Rgb(0, 255, 0));
+    planet.addActor(frisbee);
+
+  }
   daRenderer.t = -dog.theta - Math.PI / 2 + dog.v / planet.radius;
 }
 
