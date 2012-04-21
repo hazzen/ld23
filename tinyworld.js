@@ -69,7 +69,6 @@ function Renderer(attachTo, width, height) {
   this.h_ = this.canvasElem_.height;
   this.t = 0;
   this.zoom = 200;
-  this.TARGET_ZOOM = 200;
 }
 
 Renderer.prototype.width = function() {
@@ -90,10 +89,9 @@ Renderer.prototype.render = function(cb) {
   this.context_.fillRect(0, 0, this.w_, this.h_);
 
   this.context_.save();
-  var focusx = this.w_ / 2;
-  var focusy = this.h_ / 2 * (this.zoom / this.TARGET_ZOOM);
-  this.context_.translate(focusx, focusy);
+  this.context_.translate(this.w_ / 2, this.h_ / 2);
   this.context_.scale(this.zoom, this.zoom);
+  this.context_.translate(0, 1);
 
   this.context_.fillStyle = 'rgb(0, 0, 0)';
   this.context_.fillRect(-1, -1, 2, 2);
@@ -125,16 +123,16 @@ function renderFn() {
 
 function tickFn(t) {
   if (KB.keyDown(Keys.LEFT)) {
-    daRenderer.t -= t * Math.PI / 2;
+    daRenderer.t -= t * Math.PI / 8;
   }
   if (KB.keyDown(Keys.RIGHT)) {
-    daRenderer.t += t * Math.PI / 2;
+    daRenderer.t += t * Math.PI / 8;
   }
   if (KB.keyDown(Keys.DOWN)) {
-    daRenderer.zoom -= t * 100;
+    daRenderer.zoom *= (1 - t);
   }
   if (KB.keyDown(Keys.UP)) {
-    daRenderer.zoom += t * 100;
+    daRenderer.zoom *= (1 + t);
   }
 }
 
