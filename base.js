@@ -7,6 +7,12 @@ function getUid(obj) {
   return obj[UID_PROP_NAME] || (obj[UID_PROP_NAME] = ++UID);
 };
 
+function dlog() {
+  if (KB.keyPressed('d')) {
+    window.console.log(Array.prototype.join.call(arguments, ''));
+  }
+};
+
 function makeSet() {
   var set = {};
   for (var i = 0; i < arguments.length; ++i) {

@@ -67,7 +67,7 @@ Pidgine.run = function(gameStruct) {
     }
     for (var i = 0; i < numFrames; i++) {
       KB.tickHandleInput_();
-      gameStruct.tick(1 / FRAME_RATE);
+      gameStruct.tick(1 / FRAME_RATE / 3);
     }
     gameStruct.render();
 
