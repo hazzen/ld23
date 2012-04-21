@@ -40,7 +40,7 @@ Dog.prototype.tick = function(t) {
                this.v * (1 - Math.abs(ground.slope) / 3) :
                this.v * (1 + Math.abs(ground.slope) / 3);
                */
-  var ev = this.v * Math.cos(Math.abs(ground.slope * Math.PI / 2));
+  var ev = this.v * Math.cos(Math.atan(ground.slope));
   var newTheta = normalizeTheta(
       this.theta + t * ev / (this.planet.radius / 2 / Math.PI));
   dlog('v: ', this.v, ', nt: ', newTheta, ', slope: ', ground.slope, ', ev: ', ev);
@@ -238,7 +238,7 @@ Renderer.prototype.render = function(cb) {
 };
 
 var points = [];
-var NUM_POINTS = 50;
+var NUM_POINTS = 200;
 var RADIUS = 100;
 for (var i = 0; i < NUM_POINTS; ++i) {
   points.push({
