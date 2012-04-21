@@ -43,6 +43,10 @@ function randInt(a, opt_b) {
   return low + Math.floor(Math.random() * (high - low));
 };
 
+function randSgn() {
+  return Math.random() > 0.5 ? 1 : -1;
+};
+
 function pick(arr) {
   return arr[randInt(arr.length)];
 };
