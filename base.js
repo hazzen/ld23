@@ -142,6 +142,13 @@ Rgb.prototype.toRgbString = function() {
   return this.rgb_;
 };
 
+Rgb.Blend = function(a, b) {
+  var r = 0.5 * (a.r + b.r)
+  var g = 0.5 * (a.g + b.g)
+  var b = 0.5 * (a.b + b.b)
+  return new Rgb(r, g, b);
+};
+
 Rgb.prototype.toHsl = function() {
   var r = this.r / 255;
   var g = this.g / 255;
