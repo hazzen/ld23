@@ -28,11 +28,11 @@ Dog.prototype.tick = function(t) {
     }
   }
   if (KB.keyDown(Keys.LEFT)) {
-    this.v -= 15 * t;
+    this.v -= 5 * t;
     this.facing = -1;
   }
   if (KB.keyDown(Keys.RIGHT)) {
-    this.v += 15 * t;
+    this.v += 5 * t;
     this.facing = 1;
   }
   /*
@@ -45,8 +45,8 @@ Dog.prototype.tick = function(t) {
       this.theta + t * ev / (this.planet.radius / 2 / Math.PI));
   dlog('v: ', this.v, ', nt: ', newTheta, ', slope: ', ground.slope, ', ev: ', ev);
   this.theta = newTheta;
-  this.v *= 0.98;
-  if (Math.abs(this.v) < 0.1) {
+  this.v -= (this.v * 0.98 * t);
+  if (Math.abs(this.v) < 0.01) {
     this.v = 0;
   }
 };
@@ -153,8 +153,8 @@ Planet.prototype.render = function(renderer) {
     var pj = PolarPoint.rotate(this.points[j].polar, renderer.t);
     var carta = pi.toCart();
     var cartb = pj.toCart();
-    var cartc = PolarPoint.grow(pj, this.radius / 2 - pj.r).toCart();
-    var cartd = PolarPoint.grow(pi, this.radius / 2 - pi.r).toCart();
+    var cartc = PolarPoint.grow(pj, 9 * this.radius / 10 - pj.r).toCart();
+    var cartd = PolarPoint.grow(pi, 9 * this.radius / 10 - pi.r).toCart();
 
     ctx.fillStyle = this.points[i].color.toRgbString();
     ctx.beginPath();
@@ -187,7 +187,8 @@ Planet.prototype.groundAt = function(theta) {
   var a = normalizeTheta(pi.t - theta) / normalizeTheta(pi.t - pj.t);
   var height = pj.r * a + pi.r * (1 - a);
   var dy = pi.r - pj.r;
-  var dx = (pi.t - pj.t) * this.radius;
+  var dx = normalizeTheta((pi.t - pj.t)) * this.radius;
+  dlog('dx: ', dx, ' dy: ', dy);
   var slope = dy / dx;
   return {
     height: height,
