@@ -534,7 +534,7 @@ for (var snd in SOUNDS) {
 }
 var MUSIC = new Sound('music.mp3');
 imgLoader.load(MUSIC);
-MUSIC.loop();
+MUSIC.loop(true);
 
 var gameStruct = {
   'elem': gameElem,
