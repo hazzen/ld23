@@ -208,7 +208,6 @@ Dog.prototype.render = function(renderer) {
 
   if (this.frame >= SPRITES.DOG.numFrames()) {
     this.frame -= SPRITES.DOG.numFrames();
-    log(this.frame);
   }
   var dx = carta.x;
   var dy = carta.y;
@@ -456,7 +455,10 @@ function renderFn() {
   });
 }
 
+TICKS = 0;
+
 function tickFn(t) {
+  TICKS++;
   planet.tick(t);
   if (KB.keyDown(Keys.DOWN)) {
     daRenderer.zoom *= (1 - t);
@@ -464,7 +466,7 @@ function tickFn(t) {
   if (KB.keyDown(Keys.UP)) {
     daRenderer.zoom *= (1 + t);
   }
-  if (KB.keyPressed('s')) {
+  if (KB.keyPressed('s') || TICKS % 300 == 0) {
     var speedMin = planet.distanceToTheta(50);
     var speedMax = planet.distanceToTheta(150);
     var basePos = dog.theta;
