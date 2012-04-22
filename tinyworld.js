@@ -495,85 +495,112 @@ Renderer.prototype.render = function(cb) {
   this.context_.restore();
 };
 
-var points = [];
-var NUM_POINTS = 50;
 var RADIUS = 500;
-for (var i = 0; i < NUM_POINTS; ++i) {
-  points.push({
-    color: new Rgb(0, 128, 0),
-    polar: new PolarPoint(RADIUS + randFlt(-RADIUS * 0.05, RADIUS * 0.05), 2 * Math.PI * i / NUM_POINTS)
-  });
-}
-// modulate colors randomly
-for (var i = 0; i < NUM_POINTS; ++i) {
-  var targetPoint = randInt(NUM_POINTS);
-  var satMod = randFlt(0.01, 0.1);
-  for (var target = i - 3; target <= i + 3; ++target) {
-    var ti = target % NUM_POINTS;
-    if (ti < 0) ti += NUM_POINTS;
-    var td = 1 / (1 + Math.abs(target - i));
-    var c = points[ti].color.toHsl();
-    c.s -= satMod * td;
-    points[ti].color = c.toRgb();
+
+function genPoints() {
+  var points = [];
+  var NUM_POINTS = 50;
+  for (var i = 0; i < NUM_POINTS; ++i) {
+    points.push({
+      color: new Rgb(0, 128, 0),
+      polar: new PolarPoint(RADIUS + randFlt(-RADIUS * 0.05, RADIUS * 0.05), 2 * Math.PI * i / NUM_POINTS)
+    });
   }
+  // modulate colors randomly
+  for (var i = 0; i < NUM_POINTS; ++i) {
+    var targetPoint = randInt(NUM_POINTS);
+    var satMod = randFlt(0.01, 0.1);
+    for (var target = i - 3; target <= i + 3; ++target) {
+      var ti = target % NUM_POINTS;
+      if (ti < 0) ti += NUM_POINTS;
+      var td = 1 / (1 + Math.abs(target - i));
+      var c = points[ti].color.toHsl();
+      c.s -= satMod * td;
+      points[ti].color = c.toRgb();
+    }
+  }
+  return points;
 }
 
-var daPlanet = new Planet(points, RADIUS);
-var dog = new Dog(-Math.PI / 4);
-daPlanet.player = dog;
+function genPlanet() {
+  var daPlanet = new Planet(genPoints(), RADIUS);
+  var dog = new Dog(-Math.PI / 4);
+  daPlanet.player = dog;
 
-var NUM_CLOUDS = 75;
-function newCloud(planet) {
-  var cr = RADIUS + randFlt(RADIUS * 0.1, RADIUS * 0.3);
-  var ct = randFlt(0, 2 * Math.PI);
-  var w = randFlt(10, 100);
-  var h = randFlt(10, 50);
-  var color = new Hsl(0.63, 1, 0.95);
-  color.l += randFlt(-0.05, 0.05);
-  var cloud = new Cloud(new PolarPoint(cr, ct), w, h, color.toRgb());
-  planet.addActor(cloud);
-}
-// "behind" clouds
-for (var i = 0; i < NUM_CLOUDS / 2; ++i) {
-  newCloud(daPlanet);
-}
-daPlanet.addActor(dog);
-// "front" clouds
-for (var i = 0; i < NUM_CLOUDS / 2; ++i) {
-  newCloud(daPlanet);
+  var NUM_CLOUDS = 75;
+  function newCloud(planet) {
+    var cr = RADIUS + randFlt(RADIUS * 0.1, RADIUS * 0.3);
+    var ct = randFlt(0, 2 * Math.PI);
+    var w = randFlt(10, 100);
+    var h = randFlt(10, 50);
+    var color = new Hsl(0.63, 1, 0.95);
+    color.l += randFlt(-0.05, 0.05);
+    var cloud = new Cloud(new PolarPoint(cr, ct), w, h, color.toRgb());
+    planet.addActor(cloud);
+  }
+  // "behind" clouds
+  for (var i = 0; i < NUM_CLOUDS / 2; ++i) {
+    newCloud(daPlanet);
+  }
+  daPlanet.addActor(dog);
+  // "front" clouds
+  for (var i = 0; i < NUM_CLOUDS / 2; ++i) {
+    newCloud(daPlanet);
+  }
+  return daPlanet;
 }
 
 var gameElem = document.getElementById('game');
 var daRenderer = new Renderer(gameElem, 640, 480);
 
+daPlanet = genPlanet();
 daRenderer.planet = daPlanet;
 
-
 function renderFn() {
-  daRenderer.render(function(renderer) {
-    daPlanet.render(renderer);
-  });
+  if (GAME_STARTED) {
+    daRenderer.render(function(renderer) {
+      daPlanet.render(renderer);
+    });
+  } else {
+    SPRITES.SPLASH.renderFrame(daRenderer, 0, 0, 0, 0);
+  }
 }
 
+GAME_STARTED = false;
 
 function tickFn(t) {
-  daPlanet.tick(t);
-  if (KB.keyDown(Keys.DOWN)) {
-    daRenderer.zoom *= (1 - t);
+  if (GAME_STARTED) {
+    daPlanet.tick(t);
+    if (KB.keyDown(Keys.DOWN)) {
+      daRenderer.zoom *= (1 - t);
+    }
+    if (KB.keyDown(Keys.UP)) {
+      daRenderer.zoom *= (1 + t);
+    }
+    if (KB.keyPressed('s')) {
+      daPlanet.newFrisbee();
+    }
+    var newRendererT = -daPlanet.player.theta - Math.PI / 2 +
+        daPlanet.distanceToTheta(
+            sgn(daPlanet.player.v) * Math.pow(Math.abs(daPlanet.player.v),
+            1.15));
+    daRenderer.t = newRendererT;
   }
-  if (KB.keyDown(Keys.UP)) {
-    daRenderer.zoom *= (1 + t);
-  }
-  if (KB.keyPressed('s')) {
-    daPlanet.newFrisbee();
-  }
-  var newRendererT = (
-      -dog.theta - Math.PI / 2 +
-      daPlanet.distanceToTheta(sgn(dog.v) * Math.pow(Math.abs(dog.v), 1.15)));
-  daRenderer.t = newRendererT;
+}
+
+function SplashScreen() {
+  this.t = 0;
+}
+
+SplashScreen.prototype.render = function(renderer) {
+  
+}
+SplashScreen.prototype.tick = function(t) {
+  
 }
 
 var SPRITES = {
+  SPLASH: new Sprite('splash.png'),
   DOG: new Sprite('dog.png', 32),
   FRISBEE: new Sprite('frisbee.png', 16)
 };
@@ -590,8 +617,10 @@ for (var snd in SOUNDS) {
   imgLoader.load(SOUNDS[snd]);
 }
 var MUSIC = new Sound('music.mp3');
+var SPLASH_MUSIC = new Sound('bg.mp3');
 imgLoader.load(MUSIC);
 MUSIC.loop(true);
+SPLASH_MUSIC.loop(true);
 
 var gameStruct = {
   'elem': gameElem,
@@ -599,6 +628,6 @@ var gameStruct = {
   'render': renderFn
 };
 imgLoader.whenDone(function() {
-  MUSIC.play();
+  SPLASH_MUSIC.play();
   Pidgine.run(gameStruct);
 });
