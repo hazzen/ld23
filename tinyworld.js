@@ -8,10 +8,15 @@ function Cloud(p, w, h, c) {
   this.h = h;
   this.c = c;
   this.speedMod = randFlt(0.8, 1.2);
+  this.v = 0;
 };
 
 Cloud.prototype.tick = function(t) {
-  //this.p = PolarPoint.rotate(this.p, this.speedMod * t * this.planet.wind);
+  var vd = this.planet.wind - this.v;
+  this.v += vd * t / 2;
+  this.v -= (this.v * 0.98 * t);
+
+  this.p = PolarPoint.rotate(this.p, this.speedMod * t * this.v);
 };
 
 Cloud.prototype.render = function(renderer) {
@@ -35,11 +40,10 @@ Cloud.prototype.render = function(renderer) {
   ctx.fill();
 };
 
-function Frisbee(p, vr, vt, c) {
+function Frisbee(p, vr, vt) {
   this.p = p;
   this.vr = vr;
   this.vt = vt;
-  this.c = c;
   this.frame = 0;
 };
 
@@ -72,7 +76,6 @@ Frisbee.prototype.render = function(renderer) {
   var ctx = renderer.context();
 
   var rp = PolarPoint.rotate(this.p, renderer.t);
-  ctx.fillStyle = this.c.toRgbString();
 
   var dt = this.planet.visualDistanceToTheta(16, this.p.r);
   var pa = PolarPoint.rotate(rp, -dt);
@@ -175,7 +178,6 @@ Dog.prototype.tick = function(t) {
   var ev = this.v * Math.cos(Math.atan(ground.slope));
   var newTheta = normalizeTheta(
       this.theta + t * ev / (this.planet.radius / 2 / Math.PI));
-  dlog('v: ', this.v, ', slope: ', ground.slope, ', maxv: ', maxv);
   this.theta = newTheta;
   this.v -= (this.v * 0.98 * t);
   if (!moving && Math.abs(this.v) < MIN_SPEED) {
@@ -272,7 +274,6 @@ PolarSlice.prototype.overlaps = function(other) {
   var bt1 = other.center.t - other.t;
   var bt2 = other.center.t + other.t;
 
-  dlog('this: ', this.toString(), ' other: ', other.toString());
 
   if (ar1 <= br2 && br1 <= ar2) {
     return (normalizeTheta(bt1 - at1) <= normalizeTheta(at2 - at1) ||
@@ -285,10 +286,13 @@ function Planet(points, radius) {
   this.points = points;
   this.radius = radius;
   this.actors = [];
-  this.wind = 0;
+  this.wind = Math.PI / 8;
   for (var i = 0; i < 50; ++i) {
     this.actors.push(null);
   }
+  this.time = 0;
+  this.nextFrisbee = 1;
+  this.nextWindChange = 2;
 };
 
 Planet.prototype.distanceToTheta = function(d) {
@@ -313,7 +317,31 @@ Planet.prototype.addActor = function(a) {
   a.planet = this;
 };
 
+Planet.prototype.newFrisbee = function() {
+  var speedMin = this.distanceToTheta(50);
+  var speedMax = this.distanceToTheta(150);
+  var basePos = this.player.theta;
+  var frisbee = new Frisbee(
+    new PolarPoint(this.player.r + 50, basePos + randSgn() * randFlt(Math.PI / 8)),
+    -10,
+    sgn(this.player.v) * randFlt(speedMin, speedMax));
+  this.addActor(frisbee);
+};
+
 Planet.prototype.tick = function(t) {
+  this.time += t;
+
+  if (this.time > this.nextFrisbee) {
+    this.newFrisbee();
+    this.nextFrisbee += randFlt(5, 10);
+  }
+
+  if (this.time > this.nextWindChange) {
+    var newWind = randFlt(-Math.PI / 8, Math.PI / 8);
+    this.wind = (1 - 0.9) * this.wind + 0.9 * newWind;
+    this.nextWindChange += randFlt(5, 10);
+  }
+
   for (var i = 0; i < this.actors.length; ++i) {
     if (this.actors[i] && !this.actors[i].dead) {
       this.actors[i].tick(t);
@@ -353,7 +381,6 @@ Planet.prototype.render = function(renderer) {
     var ga = PolarPoint.grow(pi, 5).toCart();
     var lx = ga.x - carta.x;
     var ly = ga.y - carta.y;
-    dlog(lx, ' ', ly);
 
     var dx = cartb.x - carta.x;
     var dy = cartb.y - carta.y;
@@ -472,8 +499,6 @@ for (var i = 0; i < NUM_CLOUDS; ++i) {
   var h = randFlt(10, 50);
   var color = new Hsl(0.63, 1, 0.95);
   color.l += randFlt(-0.05, 0.05);
-  log(color.h, ' ', color.s, ' ', color.l);
-  log(color.toRgb().toRgbString());
   var cloud = new Cloud(new PolarPoint(cr, ct), w, h, color.toRgb());
   daPlanet.addActor(cloud);
 }
@@ -490,10 +515,8 @@ function renderFn() {
   });
 }
 
-TICKS = 0;
 
 function tickFn(t) {
-  TICKS++;
   daPlanet.tick(t);
   if (KB.keyDown(Keys.DOWN)) {
     daRenderer.zoom *= (1 - t);
@@ -501,17 +524,8 @@ function tickFn(t) {
   if (KB.keyDown(Keys.UP)) {
     daRenderer.zoom *= (1 + t);
   }
-  if (KB.keyPressed('s') || TICKS % 300 == 0) {
-    var speedMin = daPlanet.distanceToTheta(50);
-    var speedMax = daPlanet.distanceToTheta(150);
-    var basePos = dog.theta;
-    var frisbee = new Frisbee(
-      new PolarPoint(dog.r + 50, basePos + randSgn() * randFlt(Math.PI / 8)),
-      -10,
-      sgn(dog.v) * randFlt(speedMin, speedMax),
-      new Rgb(0, 255, 0));
-    daPlanet.addActor(frisbee);
-
+  if (KB.keyPressed('s')) {
+    daPlanet.newFrisbee();
   }
   var newRendererT = (
       -dog.theta - Math.PI / 2 +
