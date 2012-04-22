@@ -63,8 +63,8 @@ function Dog(theta) {
   this.v = 0;
   this.vy = 0;
   this.facing = 1;
-  this.MAX_V = 25;
-  this.ACCEL = 30;
+  this.MAX_V = 30;
+  this.ACCEL = 35;
   this.lastSlope = null;
   this.frame = 0;
 };
