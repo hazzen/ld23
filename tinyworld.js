@@ -53,6 +53,14 @@ Frisbee.prototype.asSlice = function() {
 };
 
 Frisbee.prototype.tick = function(t) {
+  this.vr -= 10 * t;
+  if (sgn(this.vt) == sgn(this.planet.wind)) {
+    if (Math.abs(this.vt) < Math.abs(this.planet.wind)) {
+      this.vt += this.planet.wind * t / 15;
+    }
+  } else {
+    this.vt += this.planet.wind * t / 5;
+  }
   this.frame += 10 * t;
   this.p.r += this.vr * t;
   this.p.t += normalizeTheta(this.vt * t);
@@ -322,8 +330,8 @@ Planet.prototype.newFrisbee = function() {
   var speedMax = this.distanceToTheta(150);
   var basePos = this.player.theta;
   var frisbee = new Frisbee(
-    new PolarPoint(this.player.r + 50, basePos + randSgn() * randFlt(Math.PI / 8)),
-    -10,
+    new PolarPoint(this.player.r + randFlt(100, 150), basePos + randSgn() * randFlt(Math.PI / 8)),
+    -1,
     sgn(this.player.v) * randFlt(speedMin, speedMax));
   this.addActor(frisbee);
 };
@@ -456,7 +464,7 @@ function Renderer(attachTo, width, height) {
   this.w_ = this.canvasElem_.width;
   this.h_ = this.canvasElem_.height;
   this.t = 0;
-  this.zoom = 2;
+  this.zoom = 1.7;
 }
 
 Renderer.prototype.width = function() {
@@ -477,9 +485,10 @@ Renderer.prototype.render = function(cb) {
   this.context_.fillRect(0, 0, this.w_, this.h_);
 
   this.context_.save();
+  this.zoom = Math.max(1, Math.min(2.5, this.zoom));
   this.context_.translate(this.w_ / 2, this.h_ / 2);
   this.context_.scale(this.zoom, this.zoom);
-  this.context_.translate(0, this.planet.radius);
+  this.context_.translate(0, this.planet.radius * 1.1);
 
   cb(this);
 
