@@ -85,6 +85,7 @@ Dog.prototype.tick = function(t) {
       this.r = ground.height;
     }
   }
+  // TODO: Make running fun.
   if (KB.keyDown(Keys.LEFT)) {
     this.v -= 15 * t;
     this.facing = -1;
