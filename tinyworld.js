@@ -65,6 +65,7 @@ function Dog(theta) {
   this.MAX_V = 25;
   this.ACCEL = 30;
   this.lastSlope = null;
+  this.frame = 0;
 };
 
 Dog.prototype.asSlice = function() {
@@ -73,6 +74,7 @@ Dog.prototype.asSlice = function() {
 };
 
 Dog.prototype.tick = function(t) {
+  this.frame += 10 * t * Math.max(0.2, Math.abs(this.v) / this.MAX_V);
   var ground = this.planet.groundAt(this.theta);
   var newSlope = ground.slope;
   var slopeChanged = this.lastSlope != null && newSlope != this.lastSlope;
@@ -112,11 +114,23 @@ Dog.prototype.tick = function(t) {
       this.r = ground.height;
     }
   }
+  var MIN_SPEED = 0.5;
+  var moving = false;
   if (KB.keyDown(Keys.LEFT)) {
+    moving = true;
+    if (Math.abs(this.v) < MIN_SPEED) {
+      this.frame = 1;
+      this.v = -MIN_SPEED;
+    }
     this.v -= this.ACCEL * t;
     this.facing = -1;
   }
   if (KB.keyDown(Keys.RIGHT)) {
+    moving = true;
+    if (Math.abs(this.v) < MIN_SPEED) {
+      this.frame = 1;
+      this.v = MIN_SPEED;
+    }
     this.v += this.ACCEL * t;
     this.facing = 1;
   }
@@ -129,7 +143,7 @@ Dog.prototype.tick = function(t) {
   dlog('v: ', this.v, ', slope: ', ground.slope, ', maxv: ', maxv);
   this.theta = newTheta;
   this.v -= (this.v * 0.98 * t);
-  if (Math.abs(this.v) < 0.01) {
+  if (!moving && Math.abs(this.v) < MIN_SPEED) {
     this.v = 0;
   } else if (Math.abs(this.v) > (this.grounded ? maxv : this.MAX_V)) {
     this.v -= t * sgn(this.v) * this.ACCEL * 2;
@@ -154,6 +168,7 @@ Dog.prototype.render = function(renderer) {
   var tany = carta.x - cartb.x;
   var slope = Math.atan2(carta.x - cartb.x, carta.y - cartb.y);
 
+  /*
   var cartc;
   var cartd;
 
@@ -189,7 +204,18 @@ Dog.prototype.render = function(renderer) {
   ctx.lineTo(cartc.x, cartc.y);
   ctx.lineTo(cartd.x, cartd.y);
   ctx.fill();
+  */
 
+  if (this.frame >= SPRITES.DOG.numFrames()) {
+    this.frame -= SPRITES.DOG.numFrames();
+    log(this.frame);
+  }
+  var dx = carta.x;
+  var dy = carta.y;
+  SPRITES.DOG.renderFrameScaled(
+      renderer, sgn(this.v) ? Math.floor(this.frame) : 0, dx, dy,
+      20, 10,
+      this.facing < 0 ? Sprite.RENDER_FLIPPED : 0)
 }
 
 function CartPoint(x, y, opt_depth) {
@@ -445,7 +471,7 @@ function tickFn(t) {
     var frisbee = new Frisbee(
       new PolarPoint(dog.r + 50, basePos + randSgn() * randFlt(Math.PI / 8)),
       -10,
-      randSgn() * randFlt(speedMin, speedMax),
+      sgn(dog.v) * randFlt(speedMin, speedMax),
       new Rgb(0, 255, 0));
     planet.addActor(frisbee);
 
@@ -456,9 +482,19 @@ function tickFn(t) {
   daRenderer.t = newRendererT;
 }
 
+var SPRITES = {
+  DOG: new Sprite('dog.png', 32)
+};
+var imgLoader = new ImgLoader();
+for (var spr in SPRITES) {
+  imgLoader.load(SPRITES[spr]);
+}
+
 var gameStruct = {
   'elem': gameElem,
   'tick': tickFn,
   'render': renderFn
 };
-Pidgine.run(gameStruct);
+imgLoader.whenDone(function() {
+  Pidgine.run(gameStruct);
+});
