@@ -68,11 +68,24 @@ Sound.prototype.load = function(onload) {
   onload();
 };
 
+Sound.LOOP_LISTENER = function() {
+  this.currentTime = 0;
+  this.play();
+};
+
 Sound.prototype.play = function() {
   if (window.chrome) {
     this.snd_.load();
   }
   this.snd_.play();
+};
+
+Sound.prototype.loop = function(on) {
+  if (on) {
+    this.snd_.addEventListener('ended', Sound.LOOP_LISTENER);
+  } else {
+    this.snd_.removeEventListener('ended', Sound.LOOP_LISTENER);
+  }
 };
 
 // +----------------------------------------------------------------------------

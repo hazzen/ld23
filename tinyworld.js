@@ -521,6 +521,9 @@ var imgLoader = new ImgLoader();
 for (var spr in SPRITES) {
   imgLoader.load(SPRITES[spr]);
 }
+var MUSIC = new Sound('music.mp3');
+imgLoader.load(MUSIC);
+MUSIC.loop();
 
 var gameStruct = {
   'elem': gameElem,
@@ -528,5 +531,6 @@ var gameStruct = {
   'render': renderFn
 };
 imgLoader.whenDone(function() {
+  MUSIC.play();
   Pidgine.run(gameStruct);
 });
