@@ -333,6 +333,11 @@ Planet.prototype.tick = function(t) {
 Planet.prototype.render = function(renderer) {
   var ctx = renderer.context();
 
+  ctx.beginPath();
+  ctx.fillStyle = 'rgb(57, 136, 0)';
+  ctx.arc(0, 0, 0.95 * this.radius, 0, 2 * Math.PI, true);
+  ctx.fill();
+
   for(var i = 0; i < this.points.length; ++i) {
     var j = (i == 0) ? this.points.length - 1 : i - 1;
     var pi = PolarPoint.rotate(this.points[i].polar, renderer.t);
