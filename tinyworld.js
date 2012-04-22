@@ -25,11 +25,13 @@ Frisbee.prototype.tick = function(t) {
   var pmax = PolarPoint.rotate(this.p, dt);
   if (this.asSlice().overlaps(this.planet.player.asSlice())) {
     this.dead = true;
+    SOUNDS.PICKUP.play();
   }
   if (this.p.r - 2 < ground.height ||
       pmin.r - 2 < ground.height ||
       pmax.r - 2 < ground.height) {
     this.dead = true;
+    SOUNDS.DROP.play();
   }
 };
 
@@ -93,6 +95,7 @@ Dog.prototype.tick = function(t) {
     }
   }
   if (!this.jumping && KB.keyDown('z')) {
+    SOUNDS.JUMP.play();
     this.grounded = false;
     this.jumping = true;
     this.vy = 100;
@@ -520,6 +523,14 @@ var SPRITES = {
 var imgLoader = new ImgLoader();
 for (var spr in SPRITES) {
   imgLoader.load(SPRITES[spr]);
+}
+var SOUNDS = {
+  'JUMP': new Sound('jump.mp3'),
+  'PICKUP': new Sound('pickup.mp3'),
+  'DROP': new Sound('drop.mp3')
+};
+for (var snd in SOUNDS) {
+  imgLoader.load(SOUNDS[snd]);
 }
 var MUSIC = new Sound('music.mp3');
 imgLoader.load(MUSIC);

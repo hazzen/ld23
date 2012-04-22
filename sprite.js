@@ -80,6 +80,13 @@ Sound.prototype.play = function() {
   this.snd_.play();
 };
 
+Sound.prototype.playPart = function(start, duration) {
+  if (window.chrome) {
+    this.snd_.load();
+  }
+  this.snd_.play();
+};
+
 Sound.prototype.loop = function(on) {
   if (on) {
     this.snd_.addEventListener('ended', Sound.LOOP_LISTENER);
