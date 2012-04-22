@@ -17,6 +17,16 @@ function dlog() {
   }
 };
 
+function DetRand(n) {
+  this.n = n;
+};
+
+DetRand.prototype.next = function() {
+  this.n *= 537;
+  this.n %= 367;
+  return this.n / 367;
+};
+
 function makeSet() {
   var set = {};
   for (var i = 0; i < arguments.length; ++i) {

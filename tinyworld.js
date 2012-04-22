@@ -354,6 +354,31 @@ Planet.prototype.render = function(renderer) {
     ctx.lineTo(cartc.x, cartc.y);
     ctx.lineTo(cartd.x, cartd.y);
     ctx.fill();
+
+    var fc = this.points[i].color.toHsl();
+    ctx.fillStyle = this.points[i].color.toRgbString();
+
+    // draw some grass?
+    var ga = PolarPoint.grow(pi, 5).toCart();
+    var lx = ga.x - carta.x;
+    var ly = ga.y - carta.y;
+    dlog(lx, ' ', ly);
+
+    var dx = cartb.x - carta.x;
+    var dy = cartb.y - carta.y;
+    var jitterx = new DetRand(i);
+    var width = new DetRand(i * 63);
+    var color = new DetRand(this.points[i].polar.t);
+    for (var jx = 0; jx < 1; jx += 0.05 + 0.1 * jitterx.next()) {
+      fc.l += -0.025 + 0.05 * color.next();
+      ctx.strokeStyle = fc.toRgb().toRgbString();
+      ctx.beginPath();
+      ctx.lineWidth = (1 + color.next()) * renderer.zoom;
+      var length = width.next();
+      ctx.moveTo(carta.x + dx * jx - length * lx, carta.y + dy * jx - length * ly);
+      ctx.lineTo(carta.x + dx * jx + length * lx, carta.y + dy * jx + length * ly);
+      ctx.stroke();
+    }
   }
 
   for (var i = 0; i < this.actors.length; ++i) {
