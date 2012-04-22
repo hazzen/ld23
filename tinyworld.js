@@ -2,6 +2,39 @@ function normalizeTheta(theta) {
   return theta % (2 * Math.PI) + (theta < 0 ? 2 * Math.PI : 0);
 };
 
+function Cloud(p, w, h, c) {
+  this.p = p;
+  this.w = w;
+  this.h = h;
+  this.c = c;
+  this.speedMod = randFlt(0.8, 1.2);
+};
+
+Cloud.prototype.tick = function(t) {
+  //this.p = PolarPoint.rotate(this.p, this.speedMod * t * this.planet.wind);
+};
+
+Cloud.prototype.render = function(renderer) {
+  var ctx = renderer.context();
+
+  var dt = this.planet.visualDistanceToTheta(this.w / 2, this.p.r);
+
+  var pi = PolarPoint.rotate(this.p, -dt + renderer.t);
+  var pj = PolarPoint.rotate(this.p, dt + renderer.t);
+  var carta = PolarPoint.grow(pi, this.h / 2).toCart();
+  var cartb = PolarPoint.grow(pj, this.h / 2).toCart();
+  var cartc = PolarPoint.grow(pj, -this.h / 2).toCart();
+  var cartd = PolarPoint.grow(pi, -this.h / 2).toCart();
+
+  ctx.fillStyle = this.c.toRgbString();
+  ctx.beginPath();
+  ctx.moveTo(carta.x, carta.y);
+  ctx.lineTo(cartb.x, cartb.y);
+  ctx.lineTo(cartc.x, cartc.y);
+  ctx.lineTo(cartd.x, cartd.y);
+  ctx.fill();
+};
+
 function Frisbee(p, vr, vt, c) {
   this.p = p;
   this.vr = vr;
@@ -161,52 +194,7 @@ Dog.prototype.render = function(renderer) {
   var pi = PolarPoint.rotate(
     new PolarPoint(height + 5, this.theta + renderer.t),
     -dt);
-  var pj = PolarPoint.rotate(
-    new PolarPoint(height + 5, this.theta + renderer.t),
-    dt);
   var carta = pi.toCart();
-  var cartb = pj.toCart();
-  var tanx = cartb.y - carta.y;
-  var tany = carta.x - cartb.x;
-  var slope = Math.atan2(carta.x - cartb.x, carta.y - cartb.y);
-
-  /*
-  var cartc;
-  var cartd;
-
-  var cxoff = 3;
-  var cyoff = -3;
-  var dxoff = -3;
-  var dyoff = -5;
-
-  if (this.facing < 0) {
-    var tmp = cxoff;
-    cxoff = -dxoff;
-    dxoff = -tmp;
-    tmp = cyoff;
-    cyoff = dyoff;
-    dyoff = tmp;
-  }
-
-  var ct = Math.atan2(cxoff, cyoff) + slope;
-  var dt = Math.atan2(dxoff, dyoff) + slope;
-
-  var cx = Math.sqrt(cxoff * cxoff + cyoff * cyoff) * Math.cos(ct);
-  var cy = Math.sqrt(cxoff * cxoff + cyoff * cyoff) * Math.sin(ct);
-  var dx = Math.sqrt(dxoff * dxoff + dyoff * dyoff) * Math.cos(dt);
-  var dy = Math.sqrt(dxoff * dxoff + dyoff * dyoff) * Math.sin(dt);
-
-  cartc = pj.toCart().add(cx, cy);
-  cartd = pi.toCart().add(dx, dy);
-
-  ctx.fillStyle = 'rgb(96, 46, 25)';
-  ctx.beginPath();
-  ctx.moveTo(carta.x, carta.y);
-  ctx.lineTo(cartb.x, cartb.y);
-  ctx.lineTo(cartc.x, cartc.y);
-  ctx.lineTo(cartd.x, cartd.y);
-  ctx.fill();
-  */
 
   if (this.frame >= SPRITES.DOG.numFrames()) {
     this.frame -= SPRITES.DOG.numFrames();
@@ -297,6 +285,7 @@ function Planet(points, radius) {
   this.points = points;
   this.radius = radius;
   this.actors = [];
+  this.wind = 0;
   for (var i = 0; i < 50; ++i) {
     this.actors.push(null);
   }
@@ -448,7 +437,7 @@ Renderer.prototype.context = function() {
 
 Renderer.prototype.render = function(cb) {
   this.context_.clearRect(0, 0, this.w_, this.h_);
-  this.context_.fillStyle = 'rgb(50, 50, 40)';
+  this.context_.fillStyle = 'rgb(180, 200, 255)';
   this.context_.fillRect(0, 0, this.w_, this.h_);
 
   this.context_.save();
@@ -470,20 +459,34 @@ for (var i = 0; i < NUM_POINTS; ++i) {
     polar: new PolarPoint(RADIUS + randFlt(-RADIUS * 0.05, RADIUS * 0.05), 2 * Math.PI * i / NUM_POINTS)
   });
 }
-var planet = new Planet(points, RADIUS);
+var daPlanet = new Planet(points, RADIUS);
 var dog = new Dog(-Math.PI / 4);
-planet.addActor(dog);
-planet.player = dog;
+daPlanet.addActor(dog);
+daPlanet.player = dog;
+
+var NUM_CLOUDS = 50;
+for (var i = 0; i < NUM_CLOUDS; ++i) {
+  var cr = RADIUS + randFlt(RADIUS * 0.1, RADIUS * 0.3);
+  var ct = randFlt(0, 2 * Math.PI);
+  var w = randFlt(10, 100);
+  var h = randFlt(10, 50);
+  var color = new Hsl(0.63, 1, 0.95);
+  color.l += randFlt(-0.05, 0.05);
+  log(color.h, ' ', color.s, ' ', color.l);
+  log(color.toRgb().toRgbString());
+  var cloud = new Cloud(new PolarPoint(cr, ct), w, h, color.toRgb());
+  daPlanet.addActor(cloud);
+}
 
 var gameElem = document.getElementById('game');
 var daRenderer = new Renderer(gameElem, 640, 480);
 
-daRenderer.planet = planet;
+daRenderer.planet = daPlanet;
 
 
 function renderFn() {
   daRenderer.render(function(renderer) {
-    planet.render(renderer);
+    daPlanet.render(renderer);
   });
 }
 
@@ -491,7 +494,7 @@ TICKS = 0;
 
 function tickFn(t) {
   TICKS++;
-  planet.tick(t);
+  daPlanet.tick(t);
   if (KB.keyDown(Keys.DOWN)) {
     daRenderer.zoom *= (1 - t);
   }
@@ -499,20 +502,20 @@ function tickFn(t) {
     daRenderer.zoom *= (1 + t);
   }
   if (KB.keyPressed('s') || TICKS % 300 == 0) {
-    var speedMin = planet.distanceToTheta(50);
-    var speedMax = planet.distanceToTheta(150);
+    var speedMin = daPlanet.distanceToTheta(50);
+    var speedMax = daPlanet.distanceToTheta(150);
     var basePos = dog.theta;
     var frisbee = new Frisbee(
       new PolarPoint(dog.r + 50, basePos + randSgn() * randFlt(Math.PI / 8)),
       -10,
       sgn(dog.v) * randFlt(speedMin, speedMax),
       new Rgb(0, 255, 0));
-    planet.addActor(frisbee);
+    daPlanet.addActor(frisbee);
 
   }
   var newRendererT = (
       -dog.theta - Math.PI / 2 +
-      planet.distanceToTheta(sgn(dog.v) * Math.pow(Math.abs(dog.v), 1.15)));
+      daPlanet.distanceToTheta(sgn(dog.v) * Math.pow(Math.abs(dog.v), 1.15)));
   daRenderer.t = newRendererT;
 }
 
