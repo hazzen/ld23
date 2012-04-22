@@ -138,7 +138,7 @@ Dog.prototype.tick = function(t) {
       this.vy += Math.abs(this.v) * slopeMag * 100 * t;
     }
   }
-  if (!this.jumping && KB.keyDown('z')) {
+  if (!this.jumping && KB.keyDown('z') && this.r) {
     SOUNDS.JUMP.play();
     this.grounded = false;
     this.jumping = true;
@@ -503,7 +503,8 @@ function genPoints() {
   for (var i = 0; i < NUM_POINTS; ++i) {
     points.push({
       color: new Rgb(0, 128, 0),
-      polar: new PolarPoint(RADIUS + randFlt(-RADIUS * 0.05, RADIUS * 0.05), 2 * Math.PI * i / NUM_POINTS)
+      polar: new PolarPoint(RADIUS + randFlt(-RADIUS * 0.05, RADIUS * 0.05),
+                            2 * Math.PI * i / NUM_POINTS)
     });
   }
   // modulate colors randomly
@@ -551,10 +552,20 @@ function genPlanet() {
 }
 
 var gameElem = document.getElementById('game');
+$(gameElem).blur(function() {
+  log('blur');
+  FOCUSED = false;
+});
+$(gameElem).focus(function() {
+  log('focus');
+  FOCUSED = true;
+});
 var daRenderer = new Renderer(gameElem, 640, 480);
 
 daPlanet = genPlanet();
+daSplash = new SplashScreen();
 daRenderer.planet = daPlanet;
+FOCUSED = true;
 
 function renderFn() {
   if (GAME_STARTED) {
@@ -562,7 +573,15 @@ function renderFn() {
       daPlanet.render(renderer);
     });
   } else {
-    SPRITES.SPLASH.renderFrame(daRenderer, 0, 0, 0, 0);
+    daSplash.render(daRenderer);
+  }
+  if (!FOCUSED) {
+    var ctx = daRenderer.context();
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.fillRect(0, 0, daRenderer.width(), daRenderer.height());
+    ctx.fillStyle = 'rgb(66, 66, 66)';
+    ctx.font = '36 sans-serif';
+    ctx.fillText('focus lost. click to regain.', 0, 320);
   }
 }
 
@@ -585,19 +604,47 @@ function tickFn(t) {
             sgn(daPlanet.player.v) * Math.pow(Math.abs(daPlanet.player.v),
             1.15));
     daRenderer.t = newRendererT;
+  } else {
+    daSplash.tick(t);
   }
 }
 
 function SplashScreen() {
   this.t = 0;
+  this.state = 0;
 }
 
+SplashScreen.prototype.reset = function() {
+  this.t = 0;
+  this.state = 0;
+};
+
 SplashScreen.prototype.render = function(renderer) {
-  
-}
+  if (this.state == 0) {
+    SPRITES.SPLASH.renderFrame(daRenderer, 0, 0, 0, 0);
+    if (this.t > 1) {
+      var ctx = renderer.context();
+      ctx.fillStyle = 'rgb(44, 44, 44)';
+      ctx.font = '36 sans-serif';
+      ctx.fillText('press Z to begin', 0, 400);
+    }
+  }
+};
 SplashScreen.prototype.tick = function(t) {
-  
-}
+  if (KB.keyPressed('z')) {
+    if (this.state == 0) {
+      this.state = 1;
+    } else {
+      SPLASH_MUSIC.stop();
+      MUSIC.play();
+      GAME_STARTED = true;
+    }
+  }
+  this.t += t;
+  if (this.t > 2) {
+    this.t -= 2;
+  }
+};
 
 var SPRITES = {
   SPLASH: new Sprite('splash.png'),
@@ -629,5 +676,6 @@ var gameStruct = {
 };
 imgLoader.whenDone(function() {
   SPLASH_MUSIC.play();
+  $(gameElem).focus();
   Pidgine.run(gameStruct);
 });
