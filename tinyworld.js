@@ -58,9 +58,13 @@ Frisbee.prototype.render = function(renderer) {
 function Dog(theta) {
   this.theta = theta;
   this.grounded = true;
+  this.jumping = false;
   this.v = 0;
   this.vy = 0;
   this.facing = 1;
+  this.MAX_V = 15;
+  this.ACCEL = 20;
+  this.lastSlope = null;
 };
 
 Dog.prototype.asSlice = function() {
@@ -70,44 +74,67 @@ Dog.prototype.asSlice = function() {
 
 Dog.prototype.tick = function(t) {
   var ground = this.planet.groundAt(this.theta);
-  if (this.grounded) {
-    this.r = ground.height;
-    if (KB.keyPressed('z')) {
+  var newSlope = ground.slope;
+  var slopeChanged = this.lastSlope != null && newSlope != this.lastSlope;
+  if (slopeChanged) {
+    var slopeDiff = newSlope - this.lastSlope;
+    var slopeMag = Math.abs(slopeDiff);
+    if (sgn(this.lastSlope) != sgn(newSlope)) {
+      if (sgn(this.v) != sgn(newSlope)) {
+        //if (this.grounded) this.r = ground.height;
+        this.grounded = false;
+        this.vy += Math.abs(this.v) * slopeMag * 100 * t;
+      }
+    } else if (sgn(this.v) != sgn(slopeDiff)) {
+      //if (this.grounded) this.r = ground.height;
       this.grounded = false;
-      this.vy = 1;
-      this.r += 1;
+      this.vy += Math.abs(this.v) * slopeMag * 100 * t;
     }
+  }
+  if (!this.jumping && KB.keyDown('z')) {
+    this.grounded = false;
+    this.jumping = true;
+    this.vy = 100;
+    this.r += 1;
+  }
+  if (this.grounded) {
+    this.vy = 0;
+    this.jumping = false;
+    this.r = ground.height;
   } else {
-    this.vy -= 4.9 * t;
-    this.r += this.vy;
+    var dr = this.vy * t;// * Math.sin(ground.slopeAtan);
+    var dt = this.planet.distanceToTheta(100 * this.vy) * t * -Math.cos(ground.slopeAtan);
+    this.vy -= t * 200;
+    this.v += dt;
+    this.r += dr;
     if (this.r < ground.height) {
       this.grounded = true;
       this.r = ground.height;
     }
   }
-  // TODO: Make running fun.
   if (KB.keyDown(Keys.LEFT)) {
-    this.v -= 15 * t;
+    this.v -= this.ACCEL * t;
     this.facing = -1;
   }
   if (KB.keyDown(Keys.RIGHT)) {
-    this.v += 15 * t;
+    this.v += this.ACCEL * t;
     this.facing = 1;
   }
-  /*
-  var dv = sgn(this.v) == sgn(ground.slope) ?
-               this.v * (1 - Math.abs(ground.slope) / 3) :
-               this.v * (1 + Math.abs(ground.slope) / 3);
-               */
+  var maxv = sgn(this.v) == sgn(ground.slope) ?
+      this.MAX_V * (1 - Math.abs(ground.slope) / 3) :
+      this.MAX_V * (1 + Math.abs(ground.slope) / 3);
   var ev = this.v * Math.cos(Math.atan(ground.slope));
   var newTheta = normalizeTheta(
       this.theta + t * ev / (this.planet.radius / 2 / Math.PI));
-  dlog('v: ', this.v, ', nt: ', newTheta, ', slope: ', ground.slope, ', ev: ', ev);
+  dlog('v: ', this.v, ', slope: ', ground.slope, ', maxv: ', maxv);
   this.theta = newTheta;
   this.v -= (this.v * 0.98 * t);
   if (Math.abs(this.v) < 0.01) {
     this.v = 0;
+  } else if (Math.abs(this.v) > (this.grounded ? maxv : this.MAX_V)) {
+    this.v -= t * sgn(this.v) * this.ACCEL / 2;
   }
+  this.lastSlope = newSlope;
 };
 
 Dog.prototype.render = function(renderer) {
@@ -332,7 +359,8 @@ Planet.prototype.groundAt = function(theta) {
   var slope = dy / dx;
   return {
     height: height,
-    slope: slope
+    slope: slope,
+    slopeAtan: Math.atan2(dx, dy)
   };
 };
 
@@ -379,7 +407,7 @@ Renderer.prototype.render = function(cb) {
 
 var points = [];
 var NUM_POINTS = 50;
-var RADIUS = 100;
+var RADIUS = 500;
 for (var i = 0; i < NUM_POINTS; ++i) {
   points.push({
     color: new Rgb(0, 128 + randFlt(-50, 50), 0),
