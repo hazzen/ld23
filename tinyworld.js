@@ -580,7 +580,7 @@ function renderFn() {
     ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
     ctx.fillRect(0, 0, daRenderer.width(), daRenderer.height());
     ctx.fillStyle = 'rgb(66, 66, 66)';
-    ctx.font = '36 sans-serif';
+    ctx.font = '36 arial';
     ctx.fillText('focus lost. click to regain.', 0, 320);
   }
 }
@@ -620,21 +620,33 @@ SplashScreen.prototype.reset = function() {
 };
 
 SplashScreen.prototype.render = function(renderer) {
+  var ctx = renderer.context();
   if (this.state == 0) {
     SPRITES.SPLASH.renderFrame(daRenderer, 0, 0, 0, 0);
     if (this.t > 1) {
-      var ctx = renderer.context();
       ctx.fillStyle = 'rgb(44, 44, 44)';
-      ctx.font = '36 sans-serif';
+      ctx.font = '36 arial';
       ctx.fillText('press Z to begin', 0, 400);
     }
+  } else if (this.state == 1) {
+    ctx.font = '20 arial';
+    ctx.fillStyle = 'rgb(240, 240, 255)';
+    ctx.fillRect(0, 0, renderer.width(), renderer.height());
+    ctx.fillStyle = 'rgb(66, 66, 66)';
+    ctx.fillText('dog was playing fetch one day', 0, 40);
+    ctx.fillText('dog didn\'t hear the car', 0, 70);
+    ctx.fillText('now dog gets to play fetch all day', 0, 100);
+    ctx.fillText('in his own little world', 0, 130);
+    ctx.fillText('run left and right with the arrows', 0, 300);
+    ctx.fillText('and make dog jump with "z"', 0, 330);
   }
 };
 SplashScreen.prototype.tick = function(t) {
   if (KB.keyPressed('z')) {
     if (this.state == 0) {
       this.state = 1;
-    } else {
+    } else if (this.state == 1) {
+      this.state = 2;
       SPLASH_MUSIC.stop();
       MUSIC.play();
       GAME_STARTED = true;
