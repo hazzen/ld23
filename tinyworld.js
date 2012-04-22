@@ -7,14 +7,16 @@ function Frisbee(p, vr, vt, c) {
   this.vr = vr;
   this.vt = vt;
   this.c = c;
+  this.frame = 0;
 };
 
 Frisbee.prototype.asSlice = function() {
-  var dt = this.planet.distanceToTheta(10);
-  return new PolarSlice(this.p, 2, dt);
+  var dt = this.planet.distanceToTheta(16);
+  return new PolarSlice(this.p, 4, dt);
 };
 
 Frisbee.prototype.tick = function(t) {
+  this.frame += 10 * t;
   this.p.r += this.vr * t;
   this.p.t += normalizeTheta(this.vt * t);
   var ground = this.planet.groundAt(this.p.t);
@@ -37,22 +39,19 @@ Frisbee.prototype.render = function(renderer) {
   var rp = PolarPoint.rotate(this.p, renderer.t);
   ctx.fillStyle = this.c.toRgbString();
 
-  var dt = this.planet.visualDistanceToTheta(10, this.p.r);
+  var dt = this.planet.visualDistanceToTheta(16, this.p.r);
   var pa = PolarPoint.rotate(rp, -dt);
-  var pb = PolarPoint.rotate(rp, dt);
-  var pc = PolarPoint.grow(pb, -2);
-  var pd = PolarPoint.grow(pa, -2);
   var carta = pa.toCart();
-  var cartb = pb.toCart();
-  var cartc = pc.toCart();
-  var cartd = pd.toCart();
 
-  ctx.beginPath();
-  ctx.moveTo(carta.x, carta.y);
-  ctx.lineTo(cartb.x, cartb.y);
-  ctx.lineTo(cartc.x, cartc.y);
-  ctx.lineTo(cartd.x, cartd.y);
-  ctx.fill();
+  if (this.frame >= SPRITES.FRISBEE.numFrames()) {
+    this.frame -= SPRITES.FRISBEE.numFrames();
+  }
+  var dx = carta.x;
+  var dy = carta.y;
+  SPRITES.FRISBEE.renderFrameScaled(
+      renderer, sgn(this.vt) ? Math.floor(this.frame) : 0, dx, dy,
+      16, 4,
+      this.facing < 0 ? Sprite.RENDER_FLIPPED : 0)
 };
 
 function Dog(theta) {
@@ -515,7 +514,8 @@ function tickFn(t) {
 }
 
 var SPRITES = {
-  DOG: new Sprite('dog.png', 32)
+  DOG: new Sprite('dog.png', 32),
+  FRISBEE: new Sprite('frisbee.png', 16)
 };
 var imgLoader = new ImgLoader();
 for (var spr in SPRITES) {
