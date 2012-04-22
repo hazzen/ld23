@@ -439,18 +439,21 @@ function tickFn(t) {
     daRenderer.zoom *= (1 + t);
   }
   if (KB.keyPressed('s')) {
-    var speedMin = planet.distanceToTheta(20);
-    var speedMax = planet.distanceToTheta(50);
+    var speedMin = planet.distanceToTheta(50);
+    var speedMax = planet.distanceToTheta(150);
     var basePos = dog.theta;
     var frisbee = new Frisbee(
-      new PolarPoint(planet.radius * 2, basePos + randSgn() * randFlt(Math.PI / 8)),
+      new PolarPoint(dog.r + 50, basePos + randSgn() * randFlt(Math.PI / 8)),
       -10,
       randSgn() * randFlt(speedMin, speedMax),
       new Rgb(0, 255, 0));
     planet.addActor(frisbee);
 
   }
-  daRenderer.t = -dog.theta - Math.PI / 2 + sgn(dog.v) * Math.pow(Math.abs(dog.v), 1.15) / planet.radius;
+  var newRendererT = (
+      -dog.theta - Math.PI / 2 +
+      planet.distanceToTheta(sgn(dog.v) * Math.pow(Math.abs(dog.v), 1.15)));
+  daRenderer.t = newRendererT;
 }
 
 var gameStruct = {
