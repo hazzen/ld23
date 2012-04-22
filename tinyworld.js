@@ -352,9 +352,18 @@ Planet.prototype.tick = function(t) {
 Planet.prototype.render = function(renderer) {
   var ctx = renderer.context();
 
+  ctx.fillStyle = 'rgb(0, 87, 0)';
   ctx.beginPath();
-  ctx.fillStyle = 'rgb(57, 136, 0)';
-  ctx.arc(0, 0, 0.95 * this.radius, 0, 2 * Math.PI, true);
+  var dt = 2 * Math.PI / this.points.length;
+  for (var i = 0; i < this.points.length; ++i) {
+    var pi = new PolarPoint(this.radius, dt * i + renderer.t);
+    var cart = pi.toCart();
+    if (i == 0) {
+      ctx.moveTo(cart.x, cart.y)
+    } else {
+      ctx.lineTo(cart.x, cart.y)
+    }
+  }
   ctx.fill();
 
   for(var i = 0; i < this.points.length; ++i) {
@@ -363,8 +372,8 @@ Planet.prototype.render = function(renderer) {
     var pj = PolarPoint.rotate(this.points[j].polar, renderer.t);
     var carta = pi.toCart();
     var cartb = pj.toCart();
-    var cartc = PolarPoint.grow(pj, 9 * this.radius / 10 - pj.r).toCart();
-    var cartd = PolarPoint.grow(pi, 9 * this.radius / 10 - pi.r).toCart();
+    var cartc = PolarPoint.grow(pj, -pj.r).toCart();
+    var cartd = PolarPoint.grow(pi, -pi.r).toCart();
 
     ctx.fillStyle = this.points[i].color.toRgbString();
     ctx.beginPath();
@@ -482,17 +491,30 @@ var NUM_POINTS = 50;
 var RADIUS = 500;
 for (var i = 0; i < NUM_POINTS; ++i) {
   points.push({
-    color: new Rgb(0, 128 + randFlt(-50, 50), 0),
+    color: new Rgb(0, 128, 0),
     polar: new PolarPoint(RADIUS + randFlt(-RADIUS * 0.05, RADIUS * 0.05), 2 * Math.PI * i / NUM_POINTS)
   });
 }
+// modulate colors randomly
+for (var i = 0; i < NUM_POINTS; ++i) {
+  var targetPoint = randInt(NUM_POINTS);
+  var satMod = randFlt(0.01, 0.1);
+  for (var target = i - 3; target <= i + 3; ++target) {
+    var ti = target % NUM_POINTS;
+    if (ti < 0) ti += NUM_POINTS;
+    var td = 1 / (1 + Math.abs(target - i));
+    var c = points[ti].color.toHsl();
+    c.s -= satMod * td;
+    points[ti].color = c.toRgb();
+  }
+}
+
 var daPlanet = new Planet(points, RADIUS);
 var dog = new Dog(-Math.PI / 4);
-daPlanet.addActor(dog);
 daPlanet.player = dog;
 
-var NUM_CLOUDS = 50;
-for (var i = 0; i < NUM_CLOUDS; ++i) {
+var NUM_CLOUDS = 75;
+function newCloud(planet) {
   var cr = RADIUS + randFlt(RADIUS * 0.1, RADIUS * 0.3);
   var ct = randFlt(0, 2 * Math.PI);
   var w = randFlt(10, 100);
@@ -500,7 +522,16 @@ for (var i = 0; i < NUM_CLOUDS; ++i) {
   var color = new Hsl(0.63, 1, 0.95);
   color.l += randFlt(-0.05, 0.05);
   var cloud = new Cloud(new PolarPoint(cr, ct), w, h, color.toRgb());
-  daPlanet.addActor(cloud);
+  planet.addActor(cloud);
+}
+// "behind" clouds
+for (var i = 0; i < NUM_CLOUDS / 2; ++i) {
+  newCloud(daPlanet);
+}
+daPlanet.addActor(dog);
+// "front" clouds
+for (var i = 0; i < NUM_CLOUDS / 2; ++i) {
+  newCloud(daPlanet);
 }
 
 var gameElem = document.getElementById('game');
