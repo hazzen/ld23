@@ -62,8 +62,8 @@ function Dog(theta) {
   this.v = 0;
   this.vy = 0;
   this.facing = 1;
-  this.MAX_V = 15;
-  this.ACCEL = 20;
+  this.MAX_V = 25;
+  this.ACCEL = 30;
   this.lastSlope = null;
 };
 
@@ -81,12 +81,12 @@ Dog.prototype.tick = function(t) {
     var slopeMag = Math.abs(slopeDiff);
     if (sgn(this.lastSlope) != sgn(newSlope)) {
       if (sgn(this.v) != sgn(newSlope)) {
-        //if (this.grounded) this.r = ground.height;
+        if (this.grounded) this.r = ground.height;
         this.grounded = false;
         this.vy += Math.abs(this.v) * slopeMag * 100 * t;
       }
     } else if (sgn(this.v) != sgn(slopeDiff)) {
-      //if (this.grounded) this.r = ground.height;
+      if (this.grounded) this.r = ground.height;
       this.grounded = false;
       this.vy += Math.abs(this.v) * slopeMag * 100 * t;
     }
@@ -132,7 +132,7 @@ Dog.prototype.tick = function(t) {
   if (Math.abs(this.v) < 0.01) {
     this.v = 0;
   } else if (Math.abs(this.v) > (this.grounded ? maxv : this.MAX_V)) {
-    this.v -= t * sgn(this.v) * this.ACCEL / 2;
+    this.v -= t * sgn(this.v) * this.ACCEL * 2;
   }
   this.lastSlope = newSlope;
 };
@@ -355,7 +355,6 @@ Planet.prototype.groundAt = function(theta) {
   var height = pj.r * a + pi.r * (1 - a);
   var dy = pi.r - pj.r;
   var dx = normalizeTheta((pi.t - pj.t)) * this.radius;
-  dlog('dx: ', dx, ' dy: ', dy);
   var slope = dy / dx;
   return {
     height: height,
@@ -451,7 +450,7 @@ function tickFn(t) {
     planet.addActor(frisbee);
 
   }
-  daRenderer.t = -dog.theta - Math.PI / 2 + dog.v / planet.radius;
+  daRenderer.t = -dog.theta - Math.PI / 2 + sgn(dog.v) * Math.pow(Math.abs(dog.v), 1.15) / planet.radius;
 }
 
 var gameStruct = {
