@@ -553,6 +553,7 @@ function genPlanet() {
 
 var gameElem = document.getElementById('game');
 $(gameElem).blur(function() {
+  KB.clearAll();
   FOCUSED = false;
 });
 $(gameElem).focus(function() {

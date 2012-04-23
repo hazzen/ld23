@@ -7,6 +7,11 @@ KB = {};
 KB.keyDown_ = {};
 KB.keyDownCounts_ = {};
 
+KB.clearAll = function() {
+  KB.keyDown_ = {};
+  KB.keyDownCounts_ = {};
+};
+
 KB.keyPressed = function(chr) {
   return KB.keyDown(chr) == 1;
 };
